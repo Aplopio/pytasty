@@ -1,0 +1,16 @@
+*.pyc
+*.py~
+*.*~
+#*.*#
+.DS_Store
+_build
+.*.sw[po]
+*.egg-info
+dist
+build
+MANIFEST
+.buildinfo
+.tox
+<<<<<<< HEAD
+.emacs*
+env
