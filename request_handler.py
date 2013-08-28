@@ -29,6 +29,7 @@ class HttpRequest(RequestHandler):
 
         #import ipdb;ipdb.set_trace()
         start = time.time()
+        print uri
         response = requests.request(method,uri, params=params)
         print time.time() - start
         return response_handler(response)

@@ -1,11 +1,22 @@
 from request_handler import HttpRequest
 from field_handlers import get_field_handler
+import time
+#from resources import ListResource, DetailResource
 
 
 class ListResource(object):
 
     def _generate_schema(self):
         self.schema = _request_handler.request("GET",self.schema_endpoint, [rbox.username,rbox.api_key])
+        self._update_listsubresource()
+
+    def _update_listsubresource(self):
+        if not hasattr(self, "schema"):
+            self._generate_schema()
+        for field_name, field_schema in self.schema['fields']:
+            if field_schema['type'] == "related" and \
+            field_schema['related_type'] in ["ToOneSubResourceField","ToManySubResourceField"] :
+                setattr(self, field_name, type(field_name, (ListSubResource,), {}) )
 
     def _generate_detail_class(self):
         if not hasattr(self, "schema"):
@@ -14,11 +25,12 @@ class ListResource(object):
         class_name = self.__class__.__name__
         if class_name.endswith("s"):
             class_name = class_name[:-1]
-        class_name.capitalize()
+        class_name = class_name.capitalize()
 
-        self._detail_class = type(class_name, (DetailResource,), {})
+        setattr(rbox, class_name,type(class_name, (DetailResource,), {}) )
+        self._detail_class = getattr(rbox, class_name)
 
-    def _get_detail_object(self, json_obj):
+    def get_detail_object(self, json_obj, dehydrate_object=True):
         if not hasattr(self, "_detail_class"):
             self._generate_detail_class()
 
@@ -29,7 +41,10 @@ class ListResource(object):
         for field_name, field_value in json_obj.iteritems():
             setattr(detail_object, field_name, field_value)
 
-        return dehydrate(detail_object)
+        if dehydrate_object == True:
+            return dehydrate(detail_object)
+        else:
+            return detail_object
 
     def all(self, offset=0, limit=20, **kwargs):
 
@@ -39,20 +54,29 @@ class ListResource(object):
         for list_meta_name,list_meta_value in response_objects.pop("meta").iteritems():
             setattr(self, list_meta_name, list_meta_value)
 
-        return [self._get_detail_object(obj) for obj in response_objects['objects']]
+        return [self.get_detail_object(obj) for obj in response_objects['objects']]
 
     def retrieve(self, id):
         response_object = _request_handler.request("GET", "%s%s/"%(self.list_endpoint, id), [rbox.username,rbox.api_key] )
 
-        return self._get_detail_object(response_object)
+        return self.get_detail_object(response_object)
 
     def create(self, data):
+        pass
+
+class ListSubResource(object):
+    _cached_data = None
+
+    def __init__(list_endpoint, **kwargs):
+        self.list_endpoint = rbox.SITE + list_endpoint
+
+    def all(**kwargs):
         pass
 
 
 class DetailResource(object):
 
-    def update(self, data):
+    def _update(self, data):
         pass
 
     def __getattr__(self,attr_name, *args, **kwargs):
@@ -69,8 +93,9 @@ class DetailResource(object):
         obj = self._list_object.retrieve(self.id)
 
         #ANOTHER HARDCODING
-        for field_name in [name for name in dir(obj) if not name.startswith('_')]:
+        for field_name in [name for name in dir(obj) if not name.startswith('_') and not name.startswith('json')]:
             setattr(self, field_name, getattr(obj, field_name))
+
 
 
 _request_handler = HttpRequest()
@@ -100,11 +125,21 @@ def _generate_list_resource_objects(rbox):
 
 def dehydrate(detail_object):
 
-    for field_name, field_schema in detail_object._list_object.schema['fields'].iteritems():
+
+    for field_name in [name for name in dir(detail_object) if not name.startswith('_') and not name.startswith("json")]:
+
+        field_schema = detail_object._list_object.schema['fields'][field_name]
+
         field_handler = get_field_handler(field_schema)
+        dehydrated_value = field_handler.dehydrate(getattr(detail_object,field_name), parent_obj=detail_object)
+        setattr(detail_object, field_name, dehydrated_value)
+
+    return detail_object
+
 
 
 rbox = Rbox()
 
+###DELETE THESE STUFF
 rbox.api_key = "71831d7a84efc294ec1ab7251abac9c809c32c36"
 rbox.username = "demoaccount@recruiterbox.com"
