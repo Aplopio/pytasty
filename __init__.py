@@ -13,10 +13,10 @@ class ListResource(object):
     def _update_listsubresource(self):
         if not hasattr(self, "schema"):
             self._generate_schema()
-        for field_name, field_schema in self.schema['fields']:
+        for field_name, field_schema in self.schema['fields'].iteritems():
             if field_schema['type'] == "related" and \
-            field_schema['related_type'] in ["ToOneSubResourceField","ToManySubResourceField"] :
-                setattr(self, field_name, type(field_name, (ListSubResource,), {}) )
+               field_schema['related_type'] in ["ToOneSubResourceField","ToManySubResourceField"] :
+                setattr(self, field_name, type(str(field_name), (ListSubResource,), {}) )
 
     def _generate_detail_class(self):
         if not hasattr(self, "schema"):
@@ -64,14 +64,16 @@ class ListResource(object):
     def create(self, data):
         pass
 
-class ListSubResource(object):
+class ListSubResource(ListResource):
     _cached_data = None
 
-    def __init__(list_endpoint, **kwargs):
+    def __init__(self,list_endpoint,schema_endpoint, **kwargs):
         self.list_endpoint = rbox.SITE + list_endpoint
+        self.schema_endpoint = rbox.SITE + schema_endpoint
 
-    def all(**kwargs):
-        pass
+    #def all(self, **kwargs):
+    #    return super()
+    #    pass
 
 
 class DetailResource(object):
@@ -128,6 +130,8 @@ def dehydrate(detail_object):
 
     for field_name in [name for name in dir(detail_object) if not name.startswith('_') and not name.startswith("json")]:
 
+        #if field_name == "current_stage":
+        #    import ipdb; ipdb.set_trace()
         field_schema = detail_object._list_object.schema['fields'][field_name]
 
         field_handler = get_field_handler(field_schema)

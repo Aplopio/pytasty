@@ -4,6 +4,9 @@ from request_handler import HttpRequest
 import re
 import time
 
+resource_name_from_uri = re.compile(r".*\/(.*)\/schema\/")
+id_from_uri = re.compile(r".*\/(\d+)\/")
+
 class FieldHandler(object):
 
     def hydrate(self, data):
@@ -23,7 +26,7 @@ class ToOneFieldHandler(FieldHandler):
             resource_uri = data['resource_uri']
         else:
             resource_uri = data
-        new_data = get_detail_object(self.schema, resource_uri)
+        new_data = get_dehydrated_object(self.schema, resource_uri)
         return new_data
 
 class ToManyFieldHandler(ToOneFieldHandler):
@@ -42,36 +45,23 @@ class ToOneSubResourceFieldHandler(FieldHandler):
     def hydrate(self, data):
         return data
 
-    def dehydrate(self, data, **kwargs):
-        return data
-        '''
-        import ipdb; ipdb.set_trace()
-        if not kwargs.has_key("parent_obj"):
-            return data
-
-        #ASsumes that the data will be resource_uri
-        if isinstance(data, dict):
-            resource_uri = data['resource_uri']
+    def dehydrate(self, data, parent_obj, **kwargs):
+        match = resource_name_from_uri.search(self.schema['schema'])
+        if match:
+            resource_name = match.groups()[0]
+            subresource_list_endpoint = "%s%s/"%(parent_obj.resource_uri, resource_name)
+            return getattr(parent_obj._list_object, resource_name)(list_endpoint=subresource_list_endpoint,schema_endpoint=self.schema['schema'] )
         else:
-            resource_uri = data
-        new_data = get_detail_object(self.schema, resource_uri, kwargs['parent_obj'])
-        return new_data
-        '''
+            return data
 
 class ToManySubResourceFieldHandler(ToOneSubResourceFieldHandler):
 
     def hydrate(self, data):
         return data
 
-    def dehydrate(self, data, **kwargs):
-        return data
-        '''
-        import ipdb; ipdb.set_trace()
-        new_data = []
-        for obj_data in data:
-            new_data.append(super(ToManySubResourceFieldHandler, self).dehydrate(obj_data))
-        return new_data
-        '''
+    def dehydrate(self, data,parent_obj, **kwargs):
+
+        return super(ToManySubResourceFieldHandler, self).dehydrate(data,parent_obj, **kwargs)
 
 
 class DictFieldHandler(ToOneSubResourceFieldHandler):
@@ -90,7 +80,7 @@ def get_field_handler(field_schema):
     try:
         if field_schema['type'] == "related":
             field_handler = getattr(rbox.field_handlers, "%sHandler"%(field_schema['related_type']))()
-        elif field_schema['type'] == "map":
+        elif field_schema['type'] == "dict":
             field_handler = getattr(rbox.field_handlers, " DictFieldHandler")()
     except AttributeError:
         pass
@@ -100,15 +90,16 @@ def get_field_handler(field_schema):
     return FieldHandler()
 
 
-resource_name_from_uri = re.compile(r".*\/(.*)\/schema\/")
-id_from_uri = re.compile(r".*\/(\d+)\/")
 
-def get_detail_object(schema, resource_uri, parent_obj=None):
+def get_dehydrated_object(schema, resource_uri, parent_obj=None):
     """This function assumes if a parent_obj is provided then it is a subresource"""
 
-    if hasattr(resource_uri, "_list_object"):
+    if isinstance(resource_uri, rbox.ListResource) or \
+    isinstance(resource_uri, rbox.DetailResource) or \
+    hasattr(resource_uri, "_list_object"):
         #This means that the object is already dehydrated
         return resource_uri
+
 
     if resource_uri:
         match = resource_name_from_uri.search(schema['schema'])
@@ -118,8 +109,7 @@ def get_detail_object(schema, resource_uri, parent_obj=None):
             try:
                 list_object = getattr(rbox.rbox, resource_name)
             except AttributeError:
-                import ipdb; ipdb.set_trace()
-                setattr(rbox.rbox,resource_name,type(str(resource_name), (ListResource,),\
+                setattr(rbox.rbox,resource_name,type(str(resource_name), (rbox.ListResource,),\
              {"list_endpoint":"", "schema_endpoint" :"" })())
                 list_object = getattr(rbox.rbox, resource_name)
         else:
