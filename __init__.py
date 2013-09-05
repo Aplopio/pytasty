@@ -1,6 +1,8 @@
 from request_handler import HttpRequest
 from field_handlers import get_field_handler
 import time
+import requests
+from StringIO import StringIO
 #from resources import ListResource, DetailResource
 
 
@@ -48,6 +50,22 @@ class ListResource(object):
 
     def all(self, offset=0, limit=20, **kwargs):
 
+        if limit == 0:
+            response_objects = _request_handler.request("GET", self.list_endpoint, [rbox.username,rbox.api_key], params={"offset":offset, "limit":limit} )
+            next_url = response_objects['meta']['next']
+            objects = response_objects['objects']
+
+            while True:
+                for obj in objects:
+                    yield self.get_detail_object(obj)
+                if next_url:
+                    response_objects = _request_handler.request("GET", rbox.SITE + next_url, [rbox.username,rbox.api_key] )
+                    next_url = response_objects['meta']['next']
+                    objects = response_objects['objects']
+                else:
+                    break
+
+        '''
         response_objects = _request_handler.request("GET", self.list_endpoint, [rbox.username,rbox.api_key] )
 
         #ONE HARDCODING
@@ -55,6 +73,7 @@ class ListResource(object):
             setattr(self, list_meta_name, list_meta_value)
 
         return [self.get_detail_object(obj) for obj in response_objects['objects']]
+        '''
 
     def retrieve(self, id):
         response_object = _request_handler.request("GET", "%s%s/"%(self.list_endpoint, id), [rbox.username,rbox.api_key] )
@@ -64,16 +83,29 @@ class ListResource(object):
     def create(self, data):
         pass
 
+class ListDocResource(ListResource):
+
+    def _generate_detail_class(self):
+        if not hasattr(self, "schema"):
+            self._generate_schema()
+
+        class_name = self.__class__.__name__
+        if class_name.endswith("s"):
+            class_name = class_name[:-1]
+        class_name = class_name.capitalize()
+
+        setattr(rbox, class_name,type(class_name, (DetailDocResource,), {}) )
+        self._detail_class = getattr(rbox, class_name)
+
+    def all(self, **kwargs):
+        return []
+
 class ListSubResource(ListResource):
     _cached_data = None
 
     def __init__(self,list_endpoint,schema_endpoint, **kwargs):
         self.list_endpoint = rbox.SITE + list_endpoint
         self.schema_endpoint = rbox.SITE + schema_endpoint
-
-    #def all(self, **kwargs):
-    #    return super()
-    #    pass
 
 
 class DetailResource(object):
@@ -83,7 +115,6 @@ class DetailResource(object):
 
     def __getattr__(self,attr_name, *args, **kwargs):
         if attr_name in self._list_object.schema['fields'].keys():
-            #import ipdb;ipdb.set_trace()
             self._update_object()
             return getattr(self, attr_name)
         else:
@@ -94,11 +125,26 @@ class DetailResource(object):
         #TODO Update the object in place
         obj = self._list_object.retrieve(self.id)
 
-        #ANOTHER HARDCODING
-        for field_name in [name for name in dir(obj) if not name.startswith('_') and not name.startswith('json')]:
+        #TODO: DIRTY STUFF REMOVE THESE
+        for field_name in [name for name in dir(obj) if not name.startswith('_') and not name.startswith('json') and not name.startswith('get_file') ]:
             setattr(self, field_name, getattr(obj, field_name))
 
+class DetailDocResource(DetailResource):
+    """
+    This is a special case
+    """
 
+    def get_file(self):
+        self._update_object()
+        response = requests.get(rbox.SITE + self.location)
+        response = requests.get(response.content)
+        buff = StringIO()
+        buff.content_type = response.headers['content-type']
+        buff.name = self.filename
+        buff.write(response.content)
+        buff.seek(0)
+        #buff.close()
+        return buff
 
 _request_handler = HttpRequest()
 
@@ -121,19 +167,19 @@ class Rbox(object):
 
 def _generate_list_resource_objects(rbox):
     for resource_name,resource_data in rbox.schema.iteritems():
-        setattr(rbox,resource_name,type(str(resource_name), (ListResource,),\
-             {"list_endpoint":rbox.SITE+resource_data['list_endpoint'], "schema_endpoint" : rbox.SITE+resource_data['schema'] })())
+        if resource_name == "docs":
+            setattr(rbox,resource_name,type(str(resource_name), (ListDocResource,),\
+                {"list_endpoint":rbox.SITE+resource_data['list_endpoint'], "schema_endpoint" : rbox.SITE+resource_data['schema'] })())
+        else:
+            setattr(rbox,resource_name,type(str(resource_name), (ListResource,),\
+                {"list_endpoint":rbox.SITE+resource_data['list_endpoint'], "schema_endpoint" : rbox.SITE+resource_data['schema'] })())
 
 
 def dehydrate(detail_object):
+    #TODO: DIRTY STUFF REMOVE THESE
+    for field_name in [name for name in dir(detail_object) if not name.startswith('_') and not name.startswith("json") and not name.startswith('get_file')]:
 
-
-    for field_name in [name for name in dir(detail_object) if not name.startswith('_') and not name.startswith("json")]:
-
-        #if field_name == "current_stage":
-        #    import ipdb; ipdb.set_trace()
         field_schema = detail_object._list_object.schema['fields'][field_name]
-
         field_handler = get_field_handler(field_schema)
         dehydrated_value = field_handler.dehydrate(getattr(detail_object,field_name), parent_obj=detail_object)
         setattr(detail_object, field_name, dehydrated_value)
@@ -143,7 +189,3 @@ def dehydrate(detail_object):
 
 
 rbox = Rbox()
-
-###DELETE THESE STUFF
-rbox.api_key = "71831d7a84efc294ec1ab7251abac9c809c32c36"
-rbox.username = "demoaccount@recruiterbox.com"

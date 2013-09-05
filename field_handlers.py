@@ -5,7 +5,7 @@ import re
 import time
 
 resource_name_from_uri = re.compile(r".*\/(.*)\/schema\/")
-id_from_uri = re.compile(r".*\/(\d+)\/")
+id_from_uri = re.compile(r".*\/(\w+)\/")
 
 class FieldHandler(object):
 
@@ -37,6 +37,7 @@ class ToManyFieldHandler(ToOneFieldHandler):
     def dehydrate(self, data, **kwargs):
         new_data = []
         for obj_data in data:
+
             new_data.append(super(ToManyFieldHandler, self).dehydrate(obj_data))
         return new_data
 
@@ -104,14 +105,22 @@ def get_dehydrated_object(schema, resource_uri, parent_obj=None):
     if resource_uri:
         match = resource_name_from_uri.search(schema['schema'])
 
+
         if match:
             resource_name = match.groups()[0]
             try:
+
                 list_object = getattr(rbox.rbox, resource_name)
             except AttributeError:
-                setattr(rbox.rbox,resource_name,type(str(resource_name), (rbox.ListResource,),\
-             {"list_endpoint":"", "schema_endpoint" :"" })())
-                list_object = getattr(rbox.rbox, resource_name)
+                #THIS IS SPECIAL CASE LIKE STAGEFIELD
+                #if resource_name == "stages":
+                return resource_uri
+
+                #field = ''.join([i for i in s if not i.isdigit()])
+
+                #setattr(rbox.rbox,resource_name,type(str(resource_name), (rbox.ListResource,),\
+                #    {"list_endpoint":"", "schema_endpoint" :"" })())
+                #list_object = getattr(rbox.rbox, resource_name)
         else:
             return resource_uri
         id_match = id_from_uri.search(resource_uri)
