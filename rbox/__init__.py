@@ -1,15 +1,15 @@
 from request_handler import HttpRequest
-from field_handlers import get_field_handler
 import time
 import requests
 from StringIO import StringIO
-#from resources import ListResource, DetailResource
-
+from utils import generate_list_resource_objects, dehydrate, get_schema
 
 class ListResource(object):
+    def __init__(self, *args, **kwargs):
+        self._generate_detail_class()
 
     def _generate_schema(self):
-        self.schema = _request_handler.request("GET",self.schema_endpoint, [rbox.username,rbox.api_key])
+        self.schema = get_schema(self.schema_endpoint)
         self._update_listsubresource()
 
     def _update_listsubresource(self):
@@ -29,7 +29,7 @@ class ListResource(object):
             class_name = class_name[:-1]
         class_name = class_name.capitalize()
 
-        setattr(rbox, class_name,type(class_name, (DetailResource,), {}) )
+        setattr(rbox, class_name,type(class_name, (DetailResource,), {"_list_object":self}) )
         self._detail_class = getattr(rbox, class_name)
 
     def get_detail_object(self, json_obj, dehydrate_object=True):
@@ -37,35 +37,33 @@ class ListResource(object):
             self._generate_detail_class()
 
         detail_object = self._detail_class()
-
-        detail_object._list_object = self
-        detail_object.json = json_obj
+        detail_object.__dict__['json'] = json_obj
         for field_name, field_value in json_obj.iteritems():
-            setattr(detail_object, field_name, field_value)
+            detail_object.__dict__[field_name] = field_value
 
         if dehydrate_object == True:
             return dehydrate(detail_object)
         else:
             return detail_object
 
-    def all(self, offset=0, limit=20, **kwargs):
+    def all(self, **kwargs):
 
-        if limit == 0:
-            response_objects = _request_handler.request("GET", self.list_endpoint, [rbox.username,rbox.api_key], params={"offset":offset, "limit":limit} )
-            next_url = response_objects['meta']['next']
-            objects = response_objects['objects']
+        response_objects = _request_handler.request("GET", self.list_endpoint, [rbox.username,rbox.api_key] )
+        next_url = response_objects['meta']['next']
+        objects = response_objects['objects']
 
-            while True:
-                for obj in objects:
-                    yield self.get_detail_object(obj)
-                if next_url:
-                    response_objects = _request_handler.request("GET", rbox.SITE + next_url, [rbox.username,rbox.api_key] )
-                    next_url = response_objects['meta']['next']
-                    objects = response_objects['objects']
-                else:
-                    break
+        while True:
+            for obj in objects:
+                yield self.get_detail_object(obj)
+            if next_url:
+                response_objects = _request_handler.request("GET", rbox.SITE + next_url, [rbox.username,rbox.api_key] )
+                next_url = response_objects['meta']['next']
+                objects = response_objects['objects']
+            else:
+                break
 
-        '''
+    def get(self, offset=0, limit=20, **kwargs):
+
         response_objects = _request_handler.request("GET", self.list_endpoint, [rbox.username,rbox.api_key] )
 
         #ONE HARDCODING
@@ -73,15 +71,13 @@ class ListResource(object):
             setattr(self, list_meta_name, list_meta_value)
 
         return [self.get_detail_object(obj) for obj in response_objects['objects']]
-        '''
+
 
     def retrieve(self, id):
         response_object = _request_handler.request("GET", "%s%s/"%(self.list_endpoint, id), [rbox.username,rbox.api_key] )
 
         return self.get_detail_object(response_object)
 
-    def create(self, data):
-        pass
 
 class ListDocResource(ListResource):
 
@@ -110,9 +106,6 @@ class ListSubResource(ListResource):
 
 class DetailResource(object):
 
-    def _update(self, data):
-        pass
-
     def __getattr__(self,attr_name, *args, **kwargs):
         if attr_name in self._list_object.schema['fields'].keys():
             self._update_object()
@@ -120,14 +113,36 @@ class DetailResource(object):
         else:
             raise AttributeError("'%s' does not exists in a '%s' object"%(attr_name, self.__class__.__name__))
 
+    def __setattr__(self, attr_name, value):
+        #TODO: validations
+        if not hasattr(self, "_updated_data"):
+            self.__dict__["_updated_data"] = {}
+        self.__dict__["_updated_data"][attr_name] = value
+        self.__dict__[attr_name] = value
 
     def _update_object(self):
         #TODO Update the object in place
         obj = self._list_object.retrieve(self.id)
 
         #TODO: DIRTY STUFF REMOVE THESE
-        for field_name in [name for name in dir(obj) if not name.startswith('_') and not name.startswith('json') and not name.startswith('get_file') ]:
-            setattr(self, field_name, getattr(obj, field_name))
+        for field_name in [name for name in dir(obj) if not name.startswith('_') and not name.startswith('json') and not name.startswith('get_file') and  name!="save" ]:
+
+            self.__dict__[field_name] = getattr(obj, field_name)
+
+    def save(self, **kwargs):
+        list_uri = self._list_object.list_endpoint
+        if hasattr(self, "id"):
+            #Update
+            response = _request_handler.request("PATCH", "%s%s/"%(list_uri, self.id), [rbox.username,rbox.api_key], data=self._updated_data )
+
+        else:
+            #Creating new
+            response = _request_handler.request("POST", "%s"%(list_uri), [rbox.username,rbox.api_key], data=self._updated_data )
+            self.id = response['id']
+
+        del self._updated_data
+        return True
+
 
 class DetailDocResource(DetailResource):
     """
@@ -152,40 +167,23 @@ class Rbox(object):
 
     api_key = ""
     username = ""
-    SITE = "https://app.recruiterbox.com"
 
-    def __init__(self):
-        self.list_endpoint = "%s/api/v1/"%(self.SITE)
-        self.schema_endpoint = self.list_endpoint
+    def getattr(self, attr_name):
+        if not hasattr(self, "SITE") or not hasattr(self, "SCHEMA_DUMP_URI"):
+            raise AttributeError("You seem to be accessing a resource without assigning the attribute 'SITE' and 'SCHEMA_DUMP_URI'.")
 
-        if not hasattr(self, "schema"):
+    def __setattr__(self, attr_name, value):
+        self.__dict__[attr_name] = value
+        if attr_name in ["SITE" , "SCHEMA_DUMP_URI"]:
             self._generate_schema()
 
     def _generate_schema(self):
-        self.schema =  _request_handler.request("GET",self.schema_endpoint)
-        _generate_list_resource_objects(self)
-
-def _generate_list_resource_objects(rbox):
-    for resource_name,resource_data in rbox.schema.iteritems():
-        if resource_name == "docs":
-            setattr(rbox,resource_name,type(str(resource_name), (ListDocResource,),\
-                {"list_endpoint":rbox.SITE+resource_data['list_endpoint'], "schema_endpoint" : rbox.SITE+resource_data['schema'] })())
-        else:
-            setattr(rbox,resource_name,type(str(resource_name), (ListResource,),\
-                {"list_endpoint":rbox.SITE+resource_data['list_endpoint'], "schema_endpoint" : rbox.SITE+resource_data['schema'] })())
-
-
-def dehydrate(detail_object):
-    #TODO: DIRTY STUFF REMOVE THESE
-    for field_name in [name for name in dir(detail_object) if not name.startswith('_') and not name.startswith("json") and not name.startswith('get_file')]:
-
-        field_schema = detail_object._list_object.schema['fields'][field_name]
-        field_handler = get_field_handler(field_schema)
-        dehydrated_value = field_handler.dehydrate(getattr(detail_object,field_name), parent_obj=detail_object)
-        setattr(detail_object, field_name, dehydrated_value)
-
-    return detail_object
-
+        if hasattr(self, "SITE") and hasattr(self, "SCHEMA_DUMP_URI"):
+            #This condition makes sure that a schema dump is required
+            self.__dict__['list_endpoint'] = "%s/api/v1/"%(self.SITE)
+            self.__dict__['schema_endpoint'] = "/api/v1/"
+            self.__dict__['schema'] =  get_schema(self.schema_endpoint)
+            generate_list_resource_objects(self)
 
 
 rbox = Rbox()
