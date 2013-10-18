@@ -1,6 +1,7 @@
 from request_handler import HttpRequest
 import time
 import requests
+import rbox
 from StringIO import StringIO
 from utils import generate_list_resource_objects, dehydrate, get_schema
 
@@ -186,7 +187,16 @@ class Rbox(object):
             self.__dict__['list_endpoint'] = "%s/api/v1/"%(self.SITE)
             self.__dict__['schema_endpoint'] = "/api/v1/"
             self.__dict__['schema'] =  get_schema(self.schema_endpoint)
-            generate_list_resource_objects(self)
+            self.generate_list_resource_objects()
+
+    def generate_list_resource_objects(self):
+        for resource_name,resource_data in self.schema.iteritems():
+            if resource_name == "docs":
+                setattr(self,resource_name,type(str(resource_name), (ListDocResource,),\
+                    {"list_endpoint":self.SITE+resource_data['list_endpoint'], "schema_endpoint" : resource_data['schema'] })())
+            else:
+                setattr(self,resource_name,type(str(resource_name), (ListResource,),\
+                    {"list_endpoint":self.SITE+resource_data['list_endpoint'], "schema_endpoint" : resource_data['schema'] })())
 
 
 rbox = Rbox()

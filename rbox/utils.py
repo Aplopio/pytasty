@@ -1,17 +1,6 @@
 import rbox as api_client
 from field_handlers import get_field_handler
 
-def generate_list_resource_objects(rbox):
-    for resource_name,resource_data in rbox.schema.iteritems():
-        if resource_name == "docs":
-            setattr(rbox,resource_name,type(str(resource_name), (api_client.ListDocResource,),\
-                {"list_endpoint":rbox.SITE+resource_data['list_endpoint'], "schema_endpoint" : resource_data['schema'] })())
-        else:
-            setattr(rbox,resource_name,type(str(resource_name), (api_client.ListResource,),\
-                {"list_endpoint":rbox.SITE+resource_data['list_endpoint'], "schema_endpoint" : resource_data['schema'] })())
-
-
-
 def dehydrate(detail_object):
     #TODO: DIRTY STUFF REMOVE THESE
     for field_name in [name for name in dir(detail_object) if not name.startswith('_') and not name.startswith("json") and not name.startswith('get_file') and  name!="save"]:
