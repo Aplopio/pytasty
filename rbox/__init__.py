@@ -3,7 +3,7 @@ import time
 import requests
 import rbox
 from StringIO import StringIO
-from utils import generate_list_resource_objects, dehydrate, get_schema
+from utils import  dehydrate, get_schema
 
 class ListResource(object):
     def __init__(self, *args, **kwargs):
@@ -195,6 +195,7 @@ class Rbox(object):
                 setattr(self,resource_name,type(str(resource_name), (ListDocResource,),\
                     {"list_endpoint":self.SITE+resource_data['list_endpoint'], "schema_endpoint" : resource_data['schema'] })())
             else:
+
                 setattr(self,resource_name,type(str(resource_name), (ListResource,),\
                     {"list_endpoint":self.SITE+resource_data['list_endpoint'], "schema_endpoint" : resource_data['schema'] })())
 
