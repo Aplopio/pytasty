@@ -10,9 +10,8 @@ class RequestHandler(object):
 
 class HttpRequest(RequestHandler):
 
-    params = {
-            "format":FORMAT
-            }
+    params ={} #{"format":FORMAT}
+    headers = {"content-type":"application/json"}
 
 
     def _get_auth(self, api_key):
@@ -27,7 +26,7 @@ class HttpRequest(RequestHandler):
 
         start = time.time()
         print method, uri, "============>     ",
-        response = requests.request(method,uri, params=params, data=json.dumps(data))
+        response = requests.request(method,uri, params=params,headers=self.headers, data=json.dumps(data))
         print time.time() - start, "Seconds"
         return response_handler(response)
 

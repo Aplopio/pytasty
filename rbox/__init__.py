@@ -31,6 +31,7 @@ class ListResource(object):
 
         setattr(rbox, class_name,type(class_name, (DetailResource,), {"_list_object":self}) )
         self._detail_class = getattr(rbox, class_name)
+        return self._detail_class
 
     def get_detail_object(self, json_obj, dehydrate_object=True):
         if not hasattr(self, "_detail_class"):
@@ -63,7 +64,6 @@ class ListResource(object):
                 break
 
     def get(self, offset=0, limit=20, **kwargs):
-
         response_objects = _request_handler.request("GET", self.list_endpoint, [rbox.username,rbox.api_key] )
 
         #ONE HARDCODING
@@ -78,6 +78,9 @@ class ListResource(object):
 
         return self.get_detail_object(response_object)
 
+
+    def create(self, **kwargs):
+        return self._generate_detail_class()()
 
 class ListDocResource(ListResource):
 
