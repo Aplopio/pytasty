@@ -50,4 +50,26 @@ class TestIntegration(unittest.TestCase):
         cand_message.message = "TEST MESSAGE"
         assert cand_message.save()
         for candidate_message in candidate.candidate_messages.all():
-            assert candidate_message.id = cand_message.id
+            assert candidate_message.id == cand_message.id
+
+    def test_update_get_relatedfields(self):
+        candidate = api_client.candidates.create()
+        first_name = get_uuid()
+        candidate.first_name = first_name
+        candidate.email = "xxx@example.com"
+        assert candidate.save()
+        candidate._update_object()
+
+        user = api_client.users.create()
+        user.user_type = "privileged"
+        user.email = "%s@example.com"%(get_uuid())
+        user.password = get_uuid()
+        user.name = get_uuid()
+        assert user.save()
+        accessible_to_ids = [accessible_user.id for accessible_user in candidate.accessible_to ]
+        candidate.accessible_to = candidate.accessible_to + [user]
+        assert candidate.save()
+        candidate._update_object()
+        new_accessible_ids = [accessible_user.id for accessible_user in candidate.accessible_to ]
+        assert user.id in new_accessible_ids
+        for accessible_user_id in accessible_to_ids:assert accessible_user_id in new_accessible_ids

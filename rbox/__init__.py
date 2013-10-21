@@ -4,6 +4,7 @@ import requests
 import rbox
 from StringIO import StringIO
 from utils import  dehydrate, get_schema
+from field_handlers import get_field_handler
 
 class ListResource(object):
     def __init__(self, *args, **kwargs):
@@ -130,20 +131,40 @@ class DetailResource(object):
 
         #TODO: DIRTY STUFF REMOVE THESE
         for field_name in [name for name in dir(obj) if not name.startswith('_') and not name.startswith('json') and not name.startswith('get_file') and  name!="save" ]:
-
             self.__dict__[field_name] = getattr(obj, field_name)
+
+    def _get_updated_data(self):
+        """
+        This method returns the updated data
+         and also hydrates the fields before returning
+        """
+        if not hasattr(self, "_updated_data"):return {}
+
+        updated_data = {}
+        for field_name in self._updated_data.keys():
+            if field_name in self._list_object.schema['fields'].keys():
+                field_schema = self._list_object.schema['fields'][field_name]
+                field_handler = get_field_handler(field_schema)
+                hydrated_value = field_handler.hydrate(data=self._updated_data[field_name])
+            else:
+                hydrated_value = self._updated_data[field_name]
+            updated_data[field_name] = hydrated_value
+        return updated_data
 
     def save(self, **kwargs):
         list_uri = self._list_object.list_endpoint
+        updated_data = self._get_updated_data()
+        if not updated_data:
+            return True
+
         if hasattr(self, "id"):
             #Update
-            response = _request_handler.request("PATCH", "%s%s/"%(list_uri, self.id), [rbox.username,rbox.api_key], data=self._updated_data )
-
+            response = _request_handler.request("PATCH", "%s%s/"%(list_uri, self.id), [rbox.username,rbox.api_key], data=updated_data )
         else:
             #Creating new
-            response = _request_handler.request("POST", "%s"%(list_uri), [rbox.username,rbox.api_key], data=self._updated_data )
+            response = _request_handler.request("POST", "%s"%(list_uri), [rbox.username,rbox.api_key], data=updated_data )
             self.id = response['id']
-
+            self.resource_uri = response['resource_uri']
         del self._updated_data
         return True
 

@@ -18,7 +18,7 @@ class FieldHandler(object):
 class ToOneFieldHandler(FieldHandler):
 
     def hydrate(self, data):
-        return data
+        return data.resource_uri
 
     def dehydrate(self, data, **kwargs):
         #ASsumes that the data will be resource_uri
@@ -32,12 +32,14 @@ class ToOneFieldHandler(FieldHandler):
 class ToManyFieldHandler(ToOneFieldHandler):
 
     def hydrate(self, data):
-        return data
+        new_data = []
+        for element in data:
+            new_data.append(super(ToManyFieldHandler,self).hydrate(data=element))
+        return new_data
 
     def dehydrate(self, data, **kwargs):
         new_data = []
         for obj_data in data:
-
             new_data.append(super(ToManyFieldHandler, self).dehydrate(obj_data))
         return new_data
 
@@ -101,23 +103,16 @@ def get_dehydrated_object(schema, resource_uri, parent_obj=None):
         #This means that the object is already dehydrated
         return resource_uri
 
-
     if resource_uri:
         match = resource_name_from_uri.search(schema['schema'])
-
-
         if match:
             resource_name = match.groups()[0]
             try:
-
                 list_object = getattr(rbox.rbox, resource_name)
             except AttributeError:
                 #THIS IS SPECIAL CASE LIKE STAGEFIELD
-                #if resource_name == "stages":
                 return resource_uri
-
                 #field = ''.join([i for i in s if not i.isdigit()])
-
                 #setattr(rbox.rbox,resource_name,type(str(resource_name), (rbox.ListResource,),\
                 #    {"list_endpoint":"", "schema_endpoint" :"" })())
                 #list_object = getattr(rbox.rbox, resource_name)
@@ -128,7 +123,5 @@ def get_dehydrated_object(schema, resource_uri, parent_obj=None):
             id = id_match.groups()[0]
         else:
             return resource_uri
-
-        #print "id   ",id
-        return list_object.get_detail_object({"id":id}, dehydrate_object=False)
+        return list_object.get_detail_object({"id":id,"resource_uri":resource_uri}, dehydrate_object=False)
     return resource_uri
