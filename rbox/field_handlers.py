@@ -3,9 +3,11 @@ import rbox
 from request_handler import HttpRequest
 import re
 import time
+from data_type import List
 
 resource_name_from_uri = re.compile(r".*\/(.*)\/schema\/")
 id_from_uri = re.compile(r".*\/(\w+)\/")
+
 
 class FieldHandler(object):
 
@@ -32,15 +34,17 @@ class ToOneFieldHandler(FieldHandler):
 class ToManyFieldHandler(ToOneFieldHandler):
 
     def hydrate(self, data):
-        new_data = []
+        new_data = List()
         for element in data:
-            new_data.append(super(ToManyFieldHandler,self).hydrate(data=element))
+            new_data = new_data + List([super(ToManyFieldHandler,self).hydrate(data=element)])
+            #new_data.append(super(ToManyFieldHandler,self).hydrate(data=element))
         return new_data
 
     def dehydrate(self, data, **kwargs):
-        new_data = []
+        new_data = List()
         for obj_data in data:
-            new_data.append(super(ToManyFieldHandler, self).dehydrate(obj_data))
+            new_data = new_data + List([super(ToManyFieldHandler,self).dehydrate(obj_data)])
+            #new_data.append(super(ToManyFieldHandler, self).dehydrate(obj_data))
         return new_data
 
 class ToOneSubResourceFieldHandler(FieldHandler):
@@ -63,7 +67,6 @@ class ToManySubResourceFieldHandler(ToOneSubResourceFieldHandler):
         return data
 
     def dehydrate(self, data,parent_obj, **kwargs):
-
         return super(ToManySubResourceFieldHandler, self).dehydrate(data,parent_obj, **kwargs)
 
 

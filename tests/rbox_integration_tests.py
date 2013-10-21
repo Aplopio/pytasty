@@ -67,6 +67,7 @@ class TestIntegration(unittest.TestCase):
         user.name = get_uuid()
         assert user.save()
         accessible_to_ids = [accessible_user.id for accessible_user in candidate.accessible_to ]
+        self.assertRaises(AttributeError, candidate.accessible_to.append(user))
         candidate.accessible_to = candidate.accessible_to + [user]
         assert candidate.save()
         candidate._update_object()
