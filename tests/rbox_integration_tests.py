@@ -67,10 +67,14 @@ class TestIntegration(unittest.TestCase):
         user.name = get_uuid()
         assert user.save()
         accessible_to_ids = [accessible_user.id for accessible_user in candidate.accessible_to ]
-        self.assertRaises(AttributeError, candidate.accessible_to.append(user))
+        self.assertRaises(AttributeError, candidate.accessible_to.append, user)
         candidate.accessible_to = candidate.accessible_to + [user]
         assert candidate.save()
         candidate._update_object()
         new_accessible_ids = [accessible_user.id for accessible_user in candidate.accessible_to ]
         assert user.id in new_accessible_ids
         for accessible_user_id in accessible_to_ids:assert accessible_user_id in new_accessible_ids
+
+        ####This below line tests __setattr__ for change of list type
+        candidate.accessible_to = [user]
+        self.assertRaises(AttributeError, candidate.accessible_to.append, 12)

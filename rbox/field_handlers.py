@@ -34,18 +34,16 @@ class ToOneFieldHandler(FieldHandler):
 class ToManyFieldHandler(ToOneFieldHandler):
 
     def hydrate(self, data):
-        new_data = List()
+        new_data = []
         for element in data:
-            new_data = new_data + List([super(ToManyFieldHandler,self).hydrate(data=element)])
-            #new_data.append(super(ToManyFieldHandler,self).hydrate(data=element))
+            new_data.append(super(ToManyFieldHandler,self).hydrate(data=element))
         return new_data
 
     def dehydrate(self, data, **kwargs):
-        new_data = List()
+        new_data = []
         for obj_data in data:
-            new_data = new_data + List([super(ToManyFieldHandler,self).dehydrate(obj_data)])
-            #new_data.append(super(ToManyFieldHandler, self).dehydrate(obj_data))
-        return new_data
+            new_data.append(super(ToManyFieldHandler, self).dehydrate(obj_data))
+        return List(new_data)
 
 class ToOneSubResourceFieldHandler(FieldHandler):
 

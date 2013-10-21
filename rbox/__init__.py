@@ -5,6 +5,7 @@ import rbox
 from StringIO import StringIO
 from utils import  dehydrate, get_schema
 from field_handlers import get_field_handler
+from data_type import List
 
 class ListResource(object):
     def __init__(self, *args, **kwargs):
@@ -122,6 +123,8 @@ class DetailResource(object):
         #TODO: validations
         if not hasattr(self, "_updated_data"):
             self.__dict__["_updated_data"] = {}
+        if isinstance(value, list) and not isinstance(value, List):
+            value = List(value)
         self.__dict__["_updated_data"][attr_name] = value
         self.__dict__[attr_name] = value
 
