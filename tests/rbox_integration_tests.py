@@ -36,3 +36,18 @@ class TestIntegration(unittest.TestCase):
         candidate._update_object()
         candidate = api_client.candidates.retrieve(id=candidate.id)
         assert candidate.first_name == first_name
+
+    def test_create_get_subresource(self):
+        candidate = api_client.candidates.create()
+        first_name = get_uuid()
+        candidate.first_name = first_name
+        candidate.email = "xxx@example.com"
+        assert candidate.save()
+        candidate._update_object()
+        cand_message = candidate.candidate_messages.create()
+
+        cand_message.subject = "TEST"
+        cand_message.message = "TEST MESSAGE"
+        assert cand_message.save()
+        for candidate_message in candidate.candidate_messages.all():
+            assert candidate_message.id = cand_message.id

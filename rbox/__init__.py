@@ -105,7 +105,7 @@ class ListSubResource(ListResource):
 
     def __init__(self,list_endpoint,schema_endpoint, **kwargs):
         self.list_endpoint = rbox.SITE + list_endpoint
-        self.schema_endpoint = rbox.SITE + schema_endpoint
+        self.schema_endpoint = schema_endpoint
 
 
 class DetailResource(object):
