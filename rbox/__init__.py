@@ -1,7 +1,7 @@
 from request_handler import HttpRequest
 import time
 import requests
-import rbox
+#import rbox
 from StringIO import StringIO
 from utils import  dehydrate, get_schema
 from field_handlers import get_field_handler
@@ -53,7 +53,7 @@ class ListResource(object):
 
     def all(self, **kwargs):
 
-        response_objects = _request_handler.request("GET", self.list_endpoint, [rbox.username,rbox.api_key] )
+        response_objects = _request_handler.request("GET", self.list_endpoint, [__USERNAME__,__API_KEY__] )
         next_url = response_objects['meta']['next']
         objects = response_objects['objects']
 
@@ -61,14 +61,14 @@ class ListResource(object):
             for obj in objects:
                 yield self.get_detail_object(obj)
             if next_url:
-                response_objects = _request_handler.request("GET", rbox.SITE + next_url, [rbox.username,rbox.api_key] )
+                response_objects = _request_handler.request("GET", __SITE__ + next_url, [__USERNAME__,__API_KEY__] )
                 next_url = response_objects['meta']['next']
                 objects = response_objects['objects']
             else:
                 break
 
     def get(self, offset=0, limit=20, **kwargs):
-        response_objects = _request_handler.request("GET", self.list_endpoint, [rbox.username,rbox.api_key] )
+        response_objects = _request_handler.request("GET", self.list_endpoint, [__USERNAME__,__API_KEY__] )
 
         #ONE HARDCODING
         for list_meta_name,list_meta_value in response_objects.pop("meta").iteritems():
@@ -78,8 +78,7 @@ class ListResource(object):
 
 
     def retrieve(self, id):
-        response_object = _request_handler.request("GET", "%s%s/"%(self.list_endpoint, id), [rbox.username,rbox.api_key] )
-
+        response_object = _request_handler.request("GET", "%s%s/"%(self.list_endpoint, id), [__USERNAME__,__API_KEY__] )
         return self.get_detail_object(response_object)
 
 
@@ -91,7 +90,7 @@ class ListSubResource(ListResource):
     _cached_data = None
 
     def __init__(self,list_endpoint,schema_endpoint, **kwargs):
-        self.list_endpoint = rbox.SITE + list_endpoint
+        self.list_endpoint = __SITE__ + list_endpoint
         self.schema_endpoint = schema_endpoint
 
 
@@ -147,10 +146,10 @@ class DetailResource(object):
 
         if hasattr(self, "id"):
             #Update
-            response = _request_handler.request("PATCH", "%s%s/"%(list_uri, self.id), [rbox.username,rbox.api_key], data=updated_data )
+            response = _request_handler.request("PATCH", "%s%s/"%(list_uri, self.id), [__USERNAME__,__API_KEY__], data=updated_data )
         else:
             #Creating new
-            response = _request_handler.request("POST", "%s"%(list_uri), [rbox.username,rbox.api_key], data=updated_data )
+            response = _request_handler.request("POST", "%s"%(list_uri), [__USERNAME__,__API_KEY__], data=updated_data )
             self.id = response['id']
             self.resource_uri = response['resource_uri']
         del self._updated_data
@@ -183,11 +182,15 @@ class Rbox(object):
         self.__dict__[attr_name] = value
         if attr_name in ["SITE" , "SCHEMA_DUMP_URI"]:
             self._generate_schema()
-        if attr_name in ["api_key" , "username"]:
+
+        #Set the globals
+        if attr_name in ["api_key" , "username", "SITE"]:
             global __API_KEY__
             global __USERNAME__
+            global __SITE__
             __API_KEY__ = self.api_key
             __USERNAME__ = self.username
+            __SITE__ = self.SITE
 
     def _generate_schema(self):
         if hasattr(self, "SITE") and hasattr(self, "SCHEMA_DUMP_URI"):
