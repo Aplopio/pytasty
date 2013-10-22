@@ -1,7 +1,6 @@
 from request_handler import HttpRequest
 import time
 import requests
-#import rbox
 from StringIO import StringIO
 from utils import  dehydrate, get_schema
 from field_handlers import get_field_handler
@@ -33,8 +32,8 @@ class ListResource(object):
             class_name = class_name[:-1]
         class_name = class_name.capitalize()
 
-        setattr(rbox, class_name,type(class_name, (self.default_detail_class,), {"_list_object":self}) )
-        self._detail_class = getattr(rbox, class_name)
+        setattr(__API_OBJ__, class_name,type(class_name, (self.default_detail_class,), {"_list_object":self}) )
+        self._detail_class = getattr(__API_OBJ__, class_name)
         return self._detail_class
 
     def get_detail_object(self, json_obj, dehydrate_object=True):
