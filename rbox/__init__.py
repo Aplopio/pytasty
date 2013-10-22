@@ -84,7 +84,7 @@ class ListResource(object):
 
 
     def create(self, **kwargs):
-        return self._generate_detail_class()()
+        return self.get_detail_object( {}, dehydrate_object=False)
 
 class ListDocResource(ListResource):
 
@@ -204,6 +204,10 @@ class Rbox(object):
         self.default_detail_class = kwargs.get("default_detail_class", DetailResource)
         self.default_list_class.default_detail_class = self.default_detail_class
 
+        #Should contain {"resource_name":ListClassForTheResource}
+        self.resource_custom_list_class = kwargs.get("resource_custom_list_class", {})
+
+
     def getattr(self, attr_name):
         if not hasattr(self, "SITE") or not hasattr(self, "SCHEMA_DUMP_URI"):
             raise AttributeError("You seem to be accessing a resource without assigning the attribute 'SITE' and 'SCHEMA_DUMP_URI'.")
@@ -223,13 +227,13 @@ class Rbox(object):
 
     def generate_list_resource_objects(self):
         for resource_name,resource_data in self.schema.iteritems():
-            if resource_name == "docs":
-                setattr(self,resource_name,type(str(resource_name), (ListDocResource,),\
-                    {"list_endpoint":self.SITE+resource_data['list_endpoint'], "schema_endpoint" : resource_data['schema'] })())
+            if resource_name in self.resource_custom_list_class.keys():
+                list_class = self.resource_custom_list_class[resource_name]
             else:
-
-                setattr(self,resource_name,type(str(resource_name), (self.default_list_class,),\
-                    {"list_endpoint":self.SITE+resource_data['list_endpoint'], "schema_endpoint" : resource_data['schema'] })())
+                list_class = type(str(resource_name), (self.default_list_class,),{})
+            list_class.list_endpoint = self.SITE+resource_data['list_endpoint']
+            list_class.schema_endpoint = resource_data['schema']
+            setattr(self,resource_name,list_class())
 
 
 rbox = Rbox()

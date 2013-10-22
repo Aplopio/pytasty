@@ -86,15 +86,23 @@ class TestListResource(api.ListResource):
     pass
 class TestDetailResource(api.DetailResource):
     pass
+class TestDetailCandidateResource(api.DetailResource):
+    pass
+class TestListDocResource(api.DetailResource):
+    pass
+
 
 
 class TestCase(unittest.TestCase):
 
     def test_setting_default_classes(self):
-        cust_api_client = api.Rbox(default_list_class=TestListResource,default_detail_class=TestDetailResource )
+        cust_api_client = api.Rbox(default_list_class=TestListResource,default_detail_class=TestDetailResource, resource_custom_list_class={"docs":TestListDocResource} )
         cust_api_client.SITE = api_client.SITE
         cust_api_client.api_key = api_client.api_key
         cust_api_client.username = api_client.username
         cust_api_client.SCHEMA_DUMP_URI = api_client.SCHEMA_DUMP_URI
         assert isinstance ( cust_api_client.candidates, TestListResource)
         assert isinstance ( cust_api_client.candidates.create(), TestDetailResource)
+        cust_api_client.candidates._detail_class = TestDetailCandidateResource
+        assert isinstance ( cust_api_client.candidates.create(), TestDetailCandidateResource)
+        assert isinstance ( cust_api_client.docs, TestListDocResource)
