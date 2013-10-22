@@ -14,15 +14,10 @@ api_client.api_key = "*******"
 
 api_client.username = "demoaccount@recruiterbox.com"
 api_client.SCHEMA_DUMP_URI = api_client.SITE+"/static/schema_dump.json"
-
 def get_uuid():
     return uuid.uuid4().hex
 
 class TestIntegration(unittest.TestCase):
-
-    def test_get(self):
-        assert api_client.candidates.all().next().id.isdigit()
-        return
 
     def test_update(self):
         candidate = api_client.candidates.all().next()
@@ -83,6 +78,15 @@ class TestIntegration(unittest.TestCase):
         candidate.accessible_to = [user]
         self.assertRaises(AttributeError, candidate.accessible_to.append, 12)
 
+    def test_get(self):
+        assert api_client.candidates.all().next().id.isdigit()
+        count = api_client.candidates.count
+        limit = count - 1
+        if count > 19:
+            limit  = 15
+            assert limit == len(api_client.candidates.get(offset=0, limit=15))
+
+        return
 
 import rbox as api
 

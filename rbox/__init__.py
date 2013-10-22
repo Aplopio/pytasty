@@ -7,7 +7,7 @@ from field_handlers import get_field_handler
 from data_type import List
 
 class ListResource(object):
-
+    count = None
     def __init__(self, *args, **kwargs):
         self._generate_detail_class()
 
@@ -55,7 +55,7 @@ class ListResource(object):
         response_objects = _request_handler.request("GET", self.list_endpoint, [__API_OBJ__.username,__API_OBJ__.api_key] )
         next_url = response_objects['meta']['next']
         objects = response_objects['objects']
-
+        self.count = response_objects['meta']['total_count']
         while True:
             for obj in objects:
                 yield self.get_detail_object(obj)
@@ -67,8 +67,11 @@ class ListResource(object):
                 break
 
     def get(self, offset=0, limit=20, **kwargs):
-        response_objects = _request_handler.request("GET", self.list_endpoint, [__API_OBJ__.username,__API_OBJ__.api_key] )
-
+        response_objects = _request_handler.request("GET", self.list_endpoint,\
+                                                    [__API_OBJ__.username,__API_OBJ__.api_key],\
+                                                    params={"offset":offset, "limit":limit}
+                                                )
+        self.count = response_objects['meta']['total_count']
         #ONE HARDCODING
         for list_meta_name,list_meta_value in response_objects.pop("meta").iteritems():
             setattr(self, list_meta_name, list_meta_value)

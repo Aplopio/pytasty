@@ -25,9 +25,9 @@ class HttpRequest(RequestHandler):
             params.update({"username":auth[0], "api_key":auth[1]})
 
         start = time.time()
-        print method, uri, "============>     ",
+        #print method, uri, "============>     ",
         response = requests.request(method,uri, params=params,headers=self.headers, data=json.dumps(data))
-        print time.time() - start, "Seconds"
+        #print time.time() - start, "Seconds"
         return response_handler(response)
 
 
