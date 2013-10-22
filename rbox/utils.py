@@ -14,11 +14,11 @@ def dehydrate(detail_object):
     return detail_object
 
 
-def get_schema(schema_endpoint, from_dump = True):
+def get_schema(schema_endpoint, from_dump = True, schema_dump_uri=None):
     if from_dump==True:
-        if not hasattr(api_client.utils, "_schema_dump"):
+        if not hasattr(api_client.utils, "_schema_dump") and schema_dump_uri!=None:
             api_client.utils._schema_dump = api_client._request_handler.request("GET",\
-                    api_client.rbox.SCHEMA_DUMP_URI)
+                   schema_dump_uri )
         return api_client.utils._schema_dump[schema_endpoint]
     else:
         #TODO: Cache it and Get it from http

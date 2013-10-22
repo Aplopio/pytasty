@@ -183,13 +183,18 @@ class Rbox(object):
         self.__dict__[attr_name] = value
         if attr_name in ["SITE" , "SCHEMA_DUMP_URI"]:
             self._generate_schema()
+        if attr_name in ["api_key" , "username"]:
+            global __API_KEY__
+            global __USERNAME__
+            __API_KEY__ = self.api_key
+            __USERNAME__ = self.username
 
     def _generate_schema(self):
         if hasattr(self, "SITE") and hasattr(self, "SCHEMA_DUMP_URI"):
             #This condition makes sure that a schema dump is required
             self.__dict__['list_endpoint'] = "%s/api/v1/"%(self.SITE)
             self.__dict__['schema_endpoint'] = "/api/v1/"
-            self.__dict__['schema'] =  get_schema(self.schema_endpoint)
+            self.__dict__['schema'] =  get_schema(self.schema_endpoint, schema_dump_uri=self.SCHEMA_DUMP_URI)
             self.generate_list_resource_objects()
 
     def generate_list_resource_objects(self):
