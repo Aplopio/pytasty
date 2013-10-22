@@ -78,3 +78,23 @@ class TestIntegration(unittest.TestCase):
         ####This below line tests __setattr__ for change of list type
         candidate.accessible_to = [user]
         self.assertRaises(AttributeError, candidate.accessible_to.append, 12)
+
+
+import rbox as api
+
+class TestListResource(api.ListResource):
+    pass
+class TestDetailResource(api.DetailResource):
+    pass
+
+
+class TestCase(unittest.TestCase):
+
+    def test_setting_default_classes(self):
+        cust_api_client = api.Rbox(default_list_class=TestListResource,default_detail_class=TestDetailResource )
+        cust_api_client.SITE = api_client.SITE
+        cust_api_client.api_key = api_client.api_key
+        cust_api_client.username = api_client.username
+        cust_api_client.SCHEMA_DUMP_URI = api_client.SCHEMA_DUMP_URI
+        assert isinstance ( cust_api_client.candidates, TestListResource)
+        assert isinstance ( cust_api_client.candidates.create(), TestDetailResource)

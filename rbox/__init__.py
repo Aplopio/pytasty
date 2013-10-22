@@ -8,6 +8,7 @@ from field_handlers import get_field_handler
 from data_type import List
 
 class ListResource(object):
+
     def __init__(self, *args, **kwargs):
         self._generate_detail_class()
 
@@ -32,7 +33,7 @@ class ListResource(object):
             class_name = class_name[:-1]
         class_name = class_name.capitalize()
 
-        setattr(rbox, class_name,type(class_name, (DetailResource,), {"_list_object":self}) )
+        setattr(rbox, class_name,type(class_name, (self.default_detail_class,), {"_list_object":self}) )
         self._detail_class = getattr(rbox, class_name)
         return self._detail_class
 
@@ -196,6 +197,13 @@ class Rbox(object):
     api_key = ""
     username = ""
 
+    def __init__(self, **kwargs):
+        #The below will the default parent class of the
+        # ListResources and DetailResources
+        self.default_list_class = kwargs.get("default_list_class", ListResource)
+        self.default_detail_class = kwargs.get("default_detail_class", DetailResource)
+        self.default_list_class.default_detail_class = self.default_detail_class
+
     def getattr(self, attr_name):
         if not hasattr(self, "SITE") or not hasattr(self, "SCHEMA_DUMP_URI"):
             raise AttributeError("You seem to be accessing a resource without assigning the attribute 'SITE' and 'SCHEMA_DUMP_URI'.")
@@ -220,7 +228,7 @@ class Rbox(object):
                     {"list_endpoint":self.SITE+resource_data['list_endpoint'], "schema_endpoint" : resource_data['schema'] })())
             else:
 
-                setattr(self,resource_name,type(str(resource_name), (ListResource,),\
+                setattr(self,resource_name,type(str(resource_name), (self.default_list_class,),\
                     {"list_endpoint":self.SITE+resource_data['list_endpoint'], "schema_endpoint" : resource_data['schema'] })())
 
 
