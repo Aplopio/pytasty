@@ -86,22 +86,6 @@ class ListResource(object):
     def create(self, **kwargs):
         return self.get_detail_object( {}, dehydrate_object=False)
 
-class ListDocResource(ListResource):
-
-    def _generate_detail_class(self):
-        if not hasattr(self, "schema"):
-            self._generate_schema()
-
-        class_name = self.__class__.__name__
-        if class_name.endswith("s"):
-            class_name = class_name[:-1]
-        class_name = class_name.capitalize()
-
-        setattr(rbox, class_name,type(class_name, (DetailDocResource,), {}) )
-        self._detail_class = getattr(rbox, class_name)
-
-    def all(self, **kwargs):
-        return []
 
 class ListSubResource(ListResource):
     _cached_data = None
@@ -172,23 +156,6 @@ class DetailResource(object):
         del self._updated_data
         return True
 
-
-class DetailDocResource(DetailResource):
-    """
-    This is a special case
-    """
-
-    def get_file(self):
-        self._update_object()
-        response = requests.get(rbox.SITE + self.location)
-        response = requests.get(response.content)
-        buff = StringIO()
-        buff.content_type = response.headers['content-type']
-        buff.name = self.filename
-        buff.write(response.content)
-        buff.seek(0)
-        #buff.close()
-        return buff
 
 _request_handler = HttpRequest()
 
