@@ -109,7 +109,7 @@ def get_dehydrated_object(schema, resource_uri, parent_obj=None):
         if match:
             resource_name = match.groups()[0]
             try:
-                list_object = getattr(rbox.rbox, resource_name)
+                list_object = getattr(rbox.__API_OBJ__, resource_name)
             except AttributeError:
                 #THIS IS SPECIAL CASE LIKE STAGEFIELD
                 return resource_uri
