@@ -33,13 +33,16 @@ class ListResource(object):
             class_name = class_name[:-1]
         class_name = class_name.capitalize()
 
-        setattr(__API_OBJ__, class_name,type(class_name, (self.default_detail_class,), {"_list_object":self}) )
+        detail_class = getattr(self, "_detail_class", type(class_name, (self.default_detail_class,), {"_list_object":self}))
+
+        class_name = detail_class.__name__
+        setattr(__API_OBJ__, class_name, detail_class)
         self._detail_class = getattr(__API_OBJ__, class_name)
         return self._detail_class
 
     def get_detail_object(self, json_obj, dehydrate_object=True):
-        if not hasattr(self, "_detail_class"):
-            self._generate_detail_class()
+
+        self._generate_detail_class()
 
         detail_object = self._detail_class()
         detail_object.__dict__['json'] = json_obj
