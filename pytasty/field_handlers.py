@@ -1,5 +1,5 @@
 import requests
-import rbox
+import pytasty
 from request_handler import HttpRequest
 import re
 import time
@@ -83,9 +83,9 @@ def get_field_handler(field_schema):
     field_handler = None
     try:
         if field_schema['type'] == "related":
-            field_handler = getattr(rbox.field_handlers, "%sHandler"%(field_schema['related_type']))()
+            field_handler = getattr(pytasty.field_handlers, "%sHandler"%(field_schema['related_type']))()
         elif field_schema['type'] == "dict":
-            field_handler = getattr(rbox.field_handlers, " DictFieldHandler")()
+            field_handler = getattr(pytasty.field_handlers, " DictFieldHandler")()
     except AttributeError:
         pass
     if field_handler:
@@ -98,8 +98,8 @@ def get_field_handler(field_schema):
 def get_dehydrated_object(schema, resource_uri, parent_obj=None):
     """This function assumes if a parent_obj is provided then it is a subresource"""
 
-    if isinstance(resource_uri, rbox.ListResource) or \
-    isinstance(resource_uri, rbox.DetailResource) or \
+    if isinstance(resource_uri, pytasty.ListResource) or \
+    isinstance(resource_uri, pytasty.DetailResource) or \
     hasattr(resource_uri, "_list_object"):
         #This means that the object is already dehydrated
         return resource_uri
@@ -109,7 +109,7 @@ def get_dehydrated_object(schema, resource_uri, parent_obj=None):
         if match:
             resource_name = match.groups()[0]
             try:
-                list_object = getattr(rbox.__API_OBJ__, resource_name)
+                list_object = getattr(pytasty.__API_OBJ__, resource_name)
             except AttributeError:
                 #THIS IS SPECIAL CASE LIKE STAGEFIELD
                 return resource_uri

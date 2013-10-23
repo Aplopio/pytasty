@@ -1,4 +1,4 @@
-import rbox as api_client
+import pytasty as api_client
 from field_handlers import get_field_handler
 
 def dehydrate(detail_object):

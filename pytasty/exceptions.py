@@ -1,6 +1,6 @@
-class RboxError(Exception):
+class PyTastyError(Exception):
     pass
 
 
-class RboxNotFoundError(RboxError):
+class PyTastyNotFoundError(PyTastyError):
     pass

@@ -1,5 +1,5 @@
 import requests
-from exceptions import RboxNotFoundError, RboxError
+from exceptions import PyTastyNotFoundError, PyTastyError
 import json
 import time
 
@@ -36,8 +36,10 @@ def response_handler(response):
     if response.status_code in [200, 201, 202]:
         return json.loads(response.content)
     elif response.status_code in [400]:
-        raise RboxNotFoundError(response.content)
+        raise PyTastyError("BAD REQUEST - %s"%(response.content))
     elif response.status_code in [401]:
-        raise RboxError("User Unauthorized!!")
+        raise PyTastyError("User Unauthorized!!")
+    elif response.status_code in [404]:
+        raise PyTastyError("404: Page Not Found!!")
     elif response.status_code in [500]:
-        raise RboxError("There was an error in recruiterbox!")
+        raise PyTastyError("There was an error in recruiterbox!")

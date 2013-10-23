@@ -160,7 +160,7 @@ class DetailResource(object):
 
 _request_handler = HttpRequest()
 
-class Rbox(object):
+class PyTasty(object):
 
     api_key = ""
     username = ""
@@ -209,4 +209,4 @@ class Rbox(object):
             setattr(self,resource_name,list_class())
 
 
-rbox = Rbox()
+pytasty = PyTasty()
