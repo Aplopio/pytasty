@@ -2,7 +2,7 @@ import sys
 import os
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../"))
 
-from rbox import rbox as api_client
+from pytasty import pytasty as api_client
 
 api_client.SITE = "https://app.recruiterbox.com"
 api_client.api_key = "your-api-key"
@@ -15,4 +15,3 @@ for opening in openings:
     new_stage = opening.stages.create()
     new_stage.name = 'new_stage'
     new_stage.save()
-    
