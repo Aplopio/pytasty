@@ -3,6 +3,7 @@ import os
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 
 from pytasty import pytasty as api_client
+from pytasty.exceptions import PyTastyObjectDoesnotExists
 import unittest
 import uuid
 
@@ -19,13 +20,16 @@ def get_uuid():
 
 class TestIntegration(unittest.TestCase):
 
-    def test_update(self):
+    def test_update_delete(self):
         candidate = api_client.candidates.all().next()
         first_name = get_uuid()
         candidate.first_name = first_name
         assert candidate.save()
         candidate._update_object()
         assert candidate.first_name == first_name
+        id = candidate.id
+        assert candidate.delete()
+        self.assertRaises(PyTastyObjectDoesnotExists, api_client.candidates.retrieve, id)
 
     def test_create_retrieve(self):
         candidate = api_client.candidates.create()
@@ -35,6 +39,7 @@ class TestIntegration(unittest.TestCase):
         candidate._update_object()
         candidate = api_client.candidates.retrieve(id=candidate.id)
         assert candidate.first_name == first_name
+        candidate.delete()
 
     def test_create_get_subresource(self):
         candidate = api_client.candidates.create()
@@ -50,6 +55,7 @@ class TestIntegration(unittest.TestCase):
         assert cand_message.save()
         for candidate_message in candidate.candidate_messages.all():
             assert candidate_message.id == cand_message.id
+        candidate.delete()
 
     def test_update_get_relatedfields(self):
         candidate = api_client.candidates.create()
@@ -77,6 +83,8 @@ class TestIntegration(unittest.TestCase):
         ####This below line tests __setattr__ for change of list type
         candidate.accessible_to = [user]
         self.assertRaises(AttributeError, candidate.accessible_to.append, 12)
+        candidate.delete()
+        user.delete()
 
     def test_get(self):
         assert api_client.candidates.all().next().id.isdigit()

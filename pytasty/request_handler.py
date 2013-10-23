@@ -40,6 +40,6 @@ def response_handler(response):
     elif response.status_code in [401]:
         raise PyTastyError("User Unauthorized!!")
     elif response.status_code in [404]:
-        raise PyTastyError("404: Page Not Found!!")
+        raise PyTastyNotFoundError("404: Page Not Found!!")
     elif response.status_code in [500]:
         raise PyTastyError("There was an error in recruiterbox!")

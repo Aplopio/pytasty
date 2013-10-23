@@ -5,6 +5,7 @@ from StringIO import StringIO
 from utils import  dehydrate, get_schema
 from field_handlers import get_field_handler
 from data_type import List
+from exceptions import PyTastyObjectDoesnotExists, PyTastyNotFoundError
 
 class ListResource(object):
     count = None
@@ -80,9 +81,11 @@ class ListResource(object):
 
 
     def retrieve(self, id):
-        response_object = _request_handler.request("GET", "%s%s/"%(self.list_endpoint, id), [__API_OBJ__.username,__API_OBJ__.api_key] )
+        try:
+            response_object = _request_handler.request("GET", "%s%s/"%(self.list_endpoint, id), [__API_OBJ__.username,__API_OBJ__.api_key] )
+        except PyTastyNotFoundError:
+            raise PyTastyObjectDoesnotExists("")
         return self.get_detail_object(response_object)
-
 
     def create(self, **kwargs):
         return self.get_detail_object( {}, dehydrate_object=False)
@@ -99,7 +102,7 @@ class ListSubResource(ListResource):
 class DetailResource(object):
 
     def __getattr__(self,attr_name, *args, **kwargs):
-        if attr_name in self._list_object.schema['fields'].keys():
+        if attr_name in self._list_object.schema['fields'].keys() and hasattr(self, "id"):
             self._update_object()
             return getattr(self, attr_name)
         else:
@@ -119,7 +122,7 @@ class DetailResource(object):
         obj = self._list_object.retrieve(self.id)
 
         #TODO: DIRTY STUFF REMOVE THESE
-        for field_name in [name for name in dir(obj) if not name.startswith('_') and not name.startswith('json') and not name.startswith('get_file') and  name!="save" ]:
+        for field_name in [name for name in dir(obj) if not name.startswith('_') and not name.startswith('json') and not name.startswith('get_file') and  name not in ["save", "delete"] ]:
             self.__dict__[field_name] = getattr(obj, field_name)
 
     def _get_updated_data(self):
@@ -139,6 +142,15 @@ class DetailResource(object):
                 hydrated_value = self._updated_data[field_name]
             updated_data[field_name] = hydrated_value
         return updated_data
+
+    def delete(self):
+        if not hasattr(self, "id"):
+            raise PyTastyObjectDoesnotExists("This doesn't exists in the Server!")
+        response = _request_handler.request("DELETE", "%s%s"%(__API_OBJ__.SITE, self.resource_uri), [__API_OBJ__.username,__API_OBJ__.api_key] )
+        del self.id
+        del self.resource_uri
+        del self.json
+        return True
 
     def save(self, **kwargs):
         list_uri = self._list_object.list_endpoint
