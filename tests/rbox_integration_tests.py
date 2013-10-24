@@ -107,6 +107,11 @@ class TestDetailCandidateResource(api.DetailResource):
 class TestListDocResource(api.DetailResource):
     pass
 
+class TestUserDetailResource(api.DetailResource):
+    pass
+class TestUserListResource(api.ListResource):
+    _detail_class = TestUserDetailResource
+    pass
 
 
 class TestCase(unittest.TestCase):
@@ -122,3 +127,20 @@ class TestCase(unittest.TestCase):
         cust_api_client.candidates._detail_class = TestDetailCandidateResource
         assert isinstance ( cust_api_client.candidates.create(), TestDetailCandidateResource)
         assert isinstance ( cust_api_client.docs, TestListDocResource)
+
+    def test_custom_list_resource_with_detail_class(self):
+        cust_api_client = api.PyTasty(default_list_class=TestListResource,default_detail_class=TestDetailResource, resource_custom_list_class={"users":TestUserListResource} )
+        cust_api_client.SITE = api_client.SITE
+        cust_api_client.api_key = api_client.api_key
+        cust_api_client.username = api_client.username
+        cust_api_client.SCHEMA_DUMP_URI = api_client.SCHEMA_DUMP_URI
+
+        candidate = api_client.candidates.create()
+        first_name = get_uuid()
+        candidate.first_name = first_name
+        candidate.email = "xxx@example.com"
+        assert candidate.save()
+
+        cand_id = candidate.id
+        new_cand = cust_api_client.candidates.retrieve(id=cand_id)
+        dehydrate(new_cand.created_by)

@@ -33,7 +33,8 @@ class ListResource(object):
             class_name = class_name[:-1]
         class_name = class_name.capitalize()
 
-        detail_class = getattr(self, "_detail_class", type(class_name, (self.default_detail_class,), {"_list_object":self}))
+        detail_class = getattr(self, "_detail_class", type(class_name, (self.default_detail_class,), {}))
+        detail_class._list_object = self
 
         class_name = detail_class.__name__
         setattr(__API_OBJ__, class_name, detail_class)
