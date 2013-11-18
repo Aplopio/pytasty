@@ -1,9 +1,9 @@
 import requests
 import pytasty
-from request_handler import HttpRequest
+from .request_handler import HttpRequest
 import re
 import time
-from data_type import List
+from .data_type import List
 
 resource_name_from_uri = re.compile(r".*\/(.*)\/schema\/")
 id_from_uri = re.compile(r".*\/(\w+)\/")

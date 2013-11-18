@@ -1,11 +1,11 @@
-from request_handler import HttpRequest
+from .request_handler import HttpRequest
 import time
 import requests
-from StringIO import StringIO
-from utils import  dehydrate, get_schema
-from field_handlers import get_field_handler
-from data_type import List
-from exceptions import PyTastyObjectDoesnotExists, PyTastyNotFoundError
+from io import StringIO
+from .utils import  dehydrate, get_schema
+from .field_handlers import get_field_handler
+from .data_type import List
+from .exceptions import PyTastyObjectDoesnotExists, PyTastyNotFoundError
 
 class ListResource(object):
     count = None
@@ -19,7 +19,7 @@ class ListResource(object):
     def _update_listsubresource(self):
         if not hasattr(self, "schema"):
             self._generate_schema()
-        for field_name, field_schema in self.schema['fields'].iteritems():
+        for field_name, field_schema in self.schema['fields'].items():
             if field_schema['type'] == "related" and \
                field_schema['related_type'] in ["ToOneSubResourceField","ToManySubResourceField"] :
                 setattr(self, field_name, type(str(field_name), (ListSubResource,), {}) )
@@ -47,7 +47,7 @@ class ListResource(object):
 
         detail_object = self._detail_class()
         detail_object.__dict__['json'] = json_obj
-        for field_name, field_value in json_obj.iteritems():
+        for field_name, field_value in json_obj.items():
             detail_object.__dict__[field_name] = field_value
 
         if dehydrate_object == True:
@@ -78,7 +78,7 @@ class ListResource(object):
                                                 )
         self.count = response_objects['meta']['total_count']
         #ONE HARDCODING
-        for list_meta_name,list_meta_value in response_objects.pop("meta").iteritems():
+        for list_meta_name,list_meta_value in response_objects.pop("meta").items():
             setattr(self, list_meta_name, list_meta_value)
 
         return [self.get_detail_object(obj) for obj in response_objects['objects']]
@@ -106,7 +106,7 @@ class ListSubResource(ListResource):
 class DetailResource(object):
 
     def __getattr__(self,attr_name, *args, **kwargs):
-        if attr_name in self._list_object.schema['fields'].keys() and hasattr(self, "id"):
+        if attr_name in list(self._list_object.schema['fields'].keys()) and hasattr(self, "id"):
             self._update_object()
             return getattr(self, attr_name)
         else:
@@ -137,8 +137,8 @@ class DetailResource(object):
         if not hasattr(self, "_updated_data"):return {}
 
         updated_data = {}
-        for field_name in self._updated_data.keys():
-            if field_name in self._list_object.schema['fields'].keys():
+        for field_name in list(self._updated_data.keys()):
+            if field_name in list(self._list_object.schema['fields'].keys()):
                 field_schema = self._list_object.schema['fields'][field_name]
                 field_handler = get_field_handler(field_schema)
                 hydrated_value = field_handler.hydrate(data=self._updated_data[field_name])
@@ -215,8 +215,8 @@ class PyTasty(object):
             self.generate_list_resource_objects()
 
     def generate_list_resource_objects(self):
-        for resource_name,resource_data in self.schema.iteritems():
-            if resource_name in self.resource_custom_list_class.keys():
+        for resource_name,resource_data in self.schema.items():
+            if resource_name in list(self.resource_custom_list_class.keys()):
                 list_class = self.resource_custom_list_class[resource_name]
             else:
                 list_class = type(str(resource_name), (self.default_list_class,),{})

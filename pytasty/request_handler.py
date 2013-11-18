@@ -1,5 +1,5 @@
 import requests
-from exceptions import PyTastyNotFoundError, PyTastyError
+from .exceptions import PyTastyNotFoundError, PyTastyError
 import json
 import time
 

@@ -21,7 +21,7 @@ def get_uuid():
 class TestIntegration(unittest.TestCase):
 
     def test_update_delete(self):
-        candidate = api_client.candidates.all().next()
+        candidate = next(api_client.candidates.all())
         first_name = get_uuid()
         candidate.first_name = first_name
         assert candidate.save()

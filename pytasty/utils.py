@@ -1,5 +1,5 @@
 import pytasty as api_client
-from field_handlers import get_field_handler
+from .field_handlers import get_field_handler
 
 def dehydrate(detail_object):
     #TODO: DIRTY STUFF REMOVE THESE

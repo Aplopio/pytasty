@@ -10,7 +10,7 @@ api_client.username = "demoaccount@recruiterbox.com"
 api_client.SCHEMA_DUMP_URI = api_client.SITE+"/static/schema_dump.json"
 
 openings = api_client.openings.all()
-print openings
+print(openings)
 for opening in openings:
     new_stage = opening.stages.create()
     new_stage.name = 'new_stage'
