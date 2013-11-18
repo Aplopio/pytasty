@@ -19,7 +19,7 @@ class ListResource(object):
     def _update_listsubresource(self):
         if not hasattr(self, "schema"):
             self._generate_schema()
-        for field_name, field_schema in self.schema['fields'].items():
+        for field_name, field_schema in list(self.schema['fields'].items()):
             if field_schema['type'] == "related" and \
                field_schema['related_type'] in ["ToOneSubResourceField","ToManySubResourceField"] :
                 setattr(self, field_name, type(str(field_name), (ListSubResource,), {}) )
@@ -47,7 +47,7 @@ class ListResource(object):
 
         detail_object = self._detail_class()
         detail_object.__dict__['json'] = json_obj
-        for field_name, field_value in json_obj.items():
+        for field_name, field_value in list(json_obj.items()):
             detail_object.__dict__[field_name] = field_value
 
         if dehydrate_object == True:
@@ -78,7 +78,7 @@ class ListResource(object):
                                                 )
         self.count = response_objects['meta']['total_count']
         #ONE HARDCODING
-        for list_meta_name,list_meta_value in response_objects.pop("meta").items():
+        for list_meta_name,list_meta_value in list(response_objects.pop("meta").items()):
             setattr(self, list_meta_name, list_meta_value)
 
         return [self.get_detail_object(obj) for obj in response_objects['objects']]
@@ -106,7 +106,7 @@ class ListSubResource(ListResource):
 class DetailResource(object):
 
     def __getattr__(self,attr_name, *args, **kwargs):
-        if attr_name in list(self._list_object.schema['fields'].keys()) and hasattr(self, "id"):
+        if attr_name in list(self._list_object.schema['fields'].keys()) and "id" in self.__dict__:
             self._update_object()
             return getattr(self, attr_name)
         else:
@@ -215,7 +215,7 @@ class PyTasty(object):
             self.generate_list_resource_objects()
 
     def generate_list_resource_objects(self):
-        for resource_name,resource_data in self.schema.items():
+        for resource_name,resource_data in list(self.schema.items()):
             if resource_name in list(self.resource_custom_list_class.keys()):
                 list_class = self.resource_custom_list_class[resource_name]
             else:

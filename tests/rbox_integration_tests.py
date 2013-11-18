@@ -6,6 +6,7 @@ from pytasty import pytasty as api_client
 from pytasty.exceptions import PyTastyObjectDoesnotExists
 import unittest
 import uuid
+from pytasty.utils import dehydrate
 
 
 #'''
@@ -87,7 +88,7 @@ class TestIntegration(unittest.TestCase):
         user.delete()
 
     def test_get(self):
-        assert api_client.candidates.all().next().id.isdigit()
+        assert next(api_client.candidates.all()).id.isdigit()
         count = api_client.candidates.count
         limit = count - 1
         if count > 19:

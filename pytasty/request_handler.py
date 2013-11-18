@@ -34,7 +34,7 @@ class HttpRequest(RequestHandler):
 def response_handler(response):
 
     if response.status_code in [200, 201, 202]:
-        return json.loads(response.content)
+        return response.json() #json.loads(response.content)
     elif response.status_code in [400]:
         raise PyTastyError("BAD REQUEST - %s"%(response.content))
     elif response.status_code in [401]:
