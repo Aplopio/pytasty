@@ -12,4 +12,8 @@ setup(
     packages=['pytasty',],
     license='MIT',
     long_description=open('README.md').read(),
+    install_requires=[
+          # -*- Extra requirements: -*-
+          'requests == 2.2.1',
+      ],
 )
