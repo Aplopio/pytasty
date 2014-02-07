@@ -126,7 +126,7 @@ class DetailResource(object):
         obj = self._list_object.retrieve(self.id)
 
         #TODO: DIRTY STUFF REMOVE THESE
-        for field_name in [name for name in dir(obj) if not name.startswith('_') and not name.startswith('json') and not name.startswith('get_file') and  name not in ["save", "delete"] ]:
+        for field_name in [name for name in dir(obj) if not name.startswith('_') and not name.startswith('get_file') and  name not in ["save", "delete"] ]:
             self.__dict__[field_name] = getattr(obj, field_name)
 
     def _get_updated_data(self):
