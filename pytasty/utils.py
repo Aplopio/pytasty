@@ -4,7 +4,11 @@ from .field_handlers import get_field_handler
 def dehydrate(detail_object):
     #TODO: DIRTY STUFF REMOVE THESE
     for field_name in [name for name in dir(detail_object) if not name.startswith('_') and not name.startswith("json") and  name not in ["save", "delete", "get_file"]]:
-        field_schema = detail_object._list_object.schema['fields'][field_name]
+        field_schema = detail_object._list_object.schema['fields'].get(field_name)
+        if not field_schema:
+            detail_object.__dict__[field_name] = getattr(detail_object,field_name)
+            continue
+
         field_handler = get_field_handler(field_schema)
         dehydrated_value = field_handler.dehydrate(getattr(detail_object,field_name), parent_obj=detail_object)
         detail_object.__dict__[field_name] = dehydrated_value
