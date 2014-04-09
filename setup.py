@@ -9,11 +9,11 @@ except ImportError:
 setup(
     name='pytasty',
     version='0.1dev',
-    packages=['pytasty',],
+    packages=['pytasty', ],
     license='MIT',
     long_description=open('README.md').read(),
     install_requires=[
-          # -*- Extra requirements: -*-
-          'requests == 2.2.1',
-      ],
+        # -*- Extra requirements: -*-
+        'requests == 2.2.1',
+    ],
 )
