@@ -28,7 +28,9 @@ class ToOneFieldHandler(FieldHandler):
             resource_uri = data['resource_uri']
         else:
             resource_uri = data
-        new_data = get_dehydrated_object(self.schema, resource_uri)
+        # if resource_uri == "/api/v1/users/25472/":
+        #     import ipdb; ipdb.set_trace()
+        new_data = get_dehydrated_object(self.schema, resource_uri, **kwargs )
         return new_data
 
 class ToManyFieldHandler(ToOneFieldHandler):
@@ -42,7 +44,7 @@ class ToManyFieldHandler(ToOneFieldHandler):
     def dehydrate(self, data, **kwargs):
         new_data = []
         for obj_data in data:
-            new_data.append(super(ToManyFieldHandler, self).dehydrate(obj_data))
+            new_data.append(super(ToManyFieldHandler, self).dehydrate(obj_data, **kwargs))
         return List(new_data)
 
 class ToOneSubResourceFieldHandler(FieldHandler):
@@ -95,7 +97,7 @@ def get_field_handler(field_schema):
 
 
 
-def get_dehydrated_object(schema, resource_uri, parent_obj=None):
+def get_dehydrated_object(schema, resource_uri, parent_obj=None, **kwargs):
     """This function assumes if a parent_obj is provided then it is a subresource"""
 
     if isinstance(resource_uri, pytasty.ListResource) or \
@@ -109,14 +111,10 @@ def get_dehydrated_object(schema, resource_uri, parent_obj=None):
         if match:
             resource_name = match.groups()[0]
             try:
-                list_object = getattr(pytasty.__API_OBJ__, resource_name)
+                list_object = getattr(parent_obj._list_object.api_client, resource_name)
             except AttributeError:
                 #THIS IS SPECIAL CASE LIKE STAGEFIELD
                 return resource_uri
-                #field = ''.join([i for i in s if not i.isdigit()])
-                #setattr(rbox.rbox,resource_name,type(str(resource_name), (rbox.ListResource,),\
-                #    {"list_endpoint":"", "schema_endpoint" :"" })())
-                #list_object = getattr(rbox.rbox, resource_name)
         else:
             return resource_uri
         id_match = id_from_uri.search(resource_uri)

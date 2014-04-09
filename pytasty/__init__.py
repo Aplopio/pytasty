@@ -13,7 +13,7 @@ class ListResource(object):
         self._generate_detail_class()
 
     def _generate_schema(self):
-        self.schema = get_schema(self.schema_endpoint)
+        self.schema = get_schema(request_handler, self.schema_endpoint)
         self._update_listsubresource()
 
     def _update_listsubresource(self):
@@ -22,7 +22,12 @@ class ListResource(object):
         for field_name, field_schema in list(self.schema['fields'].items()):
             if field_schema['type'] == "related" and \
                field_schema['related_type'] in ["ToOneSubResourceField","ToManySubResourceField"] :
-                setattr(self, field_name, type(str(field_name), (ListSubResource,), {}) )
+                setattr(self, field_name, type(str(field_name), (ListSubResource,),
+                                               {
+                                                   "SITE": self.SITE,
+                                                   "api_client":self.api_client,
+                                                   "request_handler":self.request_handler
+                                               }) )
 
     def _generate_detail_class(self):
         if not hasattr(self, "schema"):
@@ -37,14 +42,13 @@ class ListResource(object):
         detail_class._list_object = self
 
         class_name = detail_class.__name__
-        setattr(__API_OBJ__, class_name, detail_class)
-        self._detail_class = getattr(__API_OBJ__, class_name)
+        setattr(self.api_client, class_name, detail_class)
+        self._detail_class = getattr(self.api_client, class_name)
         return self._detail_class
 
     def get_detail_object(self, json_obj, dehydrate_object=True):
 
         self._generate_detail_class()
-
         detail_object = self._detail_class()
         detail_object.__dict__['json'] = json_obj
         for field_name, field_value in list(json_obj.items()):
@@ -57,7 +61,7 @@ class ListResource(object):
 
     def all(self, **kwargs):
 
-        response_objects = _request_handler.request("GET", self.list_endpoint, [__API_OBJ__.username,__API_OBJ__.api_key] )
+        response_objects = self.request_handler.request("GET", self.list_endpoint  )
         next_url = response_objects['meta']['next']
         objects = response_objects['objects']
         self.count = response_objects['meta']['total_count']
@@ -65,15 +69,14 @@ class ListResource(object):
             for obj in objects:
                 yield self.get_detail_object(obj)
             if next_url:
-                response_objects = _request_handler.request("GET", __API_OBJ__.SITE + next_url, [__API_OBJ__.username,__API_OBJ__.api_key] )
+                response_objects = self.request_handler.request("GET", self.SITE + next_url )
                 next_url = response_objects['meta']['next']
                 objects = response_objects['objects']
             else:
                 break
 
     def get(self, offset=0, limit=20, **kwargs):
-        response_objects = _request_handler.request("GET", self.list_endpoint,\
-                                                    [__API_OBJ__.username,__API_OBJ__.api_key],\
+        response_objects = self.request_handler.request("GET", self.list_endpoint,\
                                                     params={"offset":offset, "limit":limit}
                                                 )
         self.count = response_objects['meta']['total_count']
@@ -86,7 +89,7 @@ class ListResource(object):
 
     def retrieve(self, id):
         try:
-            response_object = _request_handler.request("GET", "%s%s/"%(self.list_endpoint, id), [__API_OBJ__.username,__API_OBJ__.api_key] )
+            response_object = self.request_handler.request("GET", "%s%s/"%(self.list_endpoint, id) )
         except PyTastyNotFoundError:
             raise PyTastyObjectDoesnotExists("")
         return self.get_detail_object(response_object)
@@ -99,7 +102,7 @@ class ListSubResource(ListResource):
     _cached_data = None
 
     def __init__(self,list_endpoint,schema_endpoint, **kwargs):
-        self.list_endpoint = __API_OBJ__.SITE + list_endpoint
+        self.list_endpoint = self.SITE + list_endpoint
         self.schema_endpoint = schema_endpoint
 
 
@@ -113,7 +116,6 @@ class DetailResource(object):
             raise AttributeError("'%s' does not exists in a '%s' object"%(attr_name, self.__class__.__name__))
 
     def __setattr__(self, attr_name, value):
-        #TODO: validations
         if not hasattr(self, "_updated_data"):
             self.__dict__["_updated_data"] = {}
         if isinstance(value, list) and not isinstance(value, List):
@@ -150,7 +152,7 @@ class DetailResource(object):
     def delete(self):
         if not hasattr(self, "id"):
             raise PyTastyObjectDoesnotExists("This doesn't exists in the Server!")
-        response = _request_handler.request("DELETE", "%s%s"%(__API_OBJ__.SITE, self.resource_uri), [__API_OBJ__.username,__API_OBJ__.api_key] )
+        response = self._list_object.request_handler.request("DELETE", "%s%s"%(self._list_object.SITE, self.resource_uri),  )
         del self.id
         del self.resource_uri
         del self.json
@@ -164,22 +166,18 @@ class DetailResource(object):
 
         if hasattr(self, "id"):
             #Update
-            response = _request_handler.request("PATCH", "%s%s/"%(list_uri, self.id), [__API_OBJ__.username,__API_OBJ__.api_key], data=updated_data )
+            response = self._list_object.request_handler.request("PATCH", "%s%s/"%(list_uri, self.id), data=updated_data )
         else:
             #Creating new
-            response = _request_handler.request("POST", "%s"%(list_uri), [__API_OBJ__.username,__API_OBJ__.api_key], data=updated_data )
+            response = self._list_object.request_handler.request("POST", "%s"%(list_uri), data=updated_data )
             self.id = response['id']
             self.resource_uri = response['resource_uri']
         del self._updated_data
         return True
 
 
-_request_handler = HttpRequest()
 
 class PyTasty(object):
-
-    api_key = ""
-    username = ""
 
     def __init__(self, **kwargs):
         #The below will the default parent class of the
@@ -191,11 +189,10 @@ class PyTasty(object):
         #Should contain {"resource_name":ListClassForTheResource}
         self.resource_custom_list_class = kwargs.get("resource_custom_list_class", {})
 
-        #Setting self to global assures, this object
-        # is used every where in the module and
-        # this remains singleton
-        global __API_OBJ__
-        __API_OBJ__ = self
+        if not kwargs.get("request_handler"):
+            self.request_handler = HttpRequest()
+
+
 
     def getattr(self, attr_name):
         if not hasattr(self, "SITE") or not hasattr(self, "SCHEMA_DUMP_URI"):
@@ -206,12 +203,17 @@ class PyTasty(object):
         if attr_name in ["SITE" , "SCHEMA_DUMP_URI"]:
             self._generate_schema()
 
+        #Lets set the api_key and username to request handler when the user sets it
+        if attr_name in ["api_key", "username"]:
+            setattr(self.request_handler, attr_name, value)
+
+
     def _generate_schema(self):
         if hasattr(self, "SITE") and hasattr(self, "SCHEMA_DUMP_URI"):
             #This condition makes sure that a schema dump is required
             self.__dict__['list_endpoint'] = "%s/api/v1/"%(self.SITE)
             self.__dict__['schema_endpoint'] = "/api/v1/"
-            self.__dict__['schema'] =  get_schema(self.schema_endpoint, schema_dump_uri=self.SCHEMA_DUMP_URI)
+            self.__dict__['schema'] =  get_schema(request_handler=self.request_handler, schema_endpoint=self.schema_endpoint, schema_dump_uri=self.SCHEMA_DUMP_URI)
             self.generate_list_resource_objects()
 
     def generate_list_resource_objects(self):
@@ -220,6 +222,12 @@ class PyTasty(object):
                 list_class = self.resource_custom_list_class[resource_name]
             else:
                 list_class = type(str(resource_name), (self.default_list_class,),{})
+
+            list_class.request_handler = self.request_handler
+            list_class.SITE = self.SITE
+
+            #TODO: should clean this up when cleaning the dehydrate functions
+            list_class.api_client = self
             list_class.list_endpoint = self.SITE+resource_data['list_endpoint']
             list_class.schema_endpoint = resource_data['schema']
             setattr(self,resource_name,list_class())

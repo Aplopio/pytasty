@@ -12,15 +12,14 @@ def dehydrate(detail_object):
         field_handler = get_field_handler(field_schema)
         dehydrated_value = field_handler.dehydrate(getattr(detail_object,field_name), parent_obj=detail_object)
         detail_object.__dict__[field_name] = dehydrated_value
-        #setattr(detail_object, field_name, dehydrated_value)
 
     return detail_object
 
 
-def get_schema(schema_endpoint, from_dump = True, schema_dump_uri=None):
+def get_schema(request_handler, schema_endpoint, from_dump = True, schema_dump_uri=None):
     if from_dump==True:
         if not hasattr(api_client.utils, "_schema_dump") and schema_dump_uri!=None:
-            api_client.utils._schema_dump = api_client._request_handler.request("GET",\
+            api_client.utils._schema_dump = request_handler.request("GET",\
                    schema_dump_uri )
         return api_client.utils._schema_dump[schema_endpoint]
     else:

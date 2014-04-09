@@ -5,10 +5,9 @@ import time
 
 FORMAT = "json"
 
-class RequestHandler(object):
-    pass
 
-class HttpRequest(RequestHandler):
+
+class HttpRequest(object):
 
     params ={} #{"format":FORMAT}
     headers = {"content-type":"application/json"}
@@ -19,10 +18,13 @@ class HttpRequest(RequestHandler):
             return {}
 
 
-    def request(self,method, uri, auth=[], params={}, data={}, *args, **kwargs):
+    def request(self,method, uri,  params={}, data={}, *args, **kwargs):
         params.update(self.params)
-        if auth:
-            params.update({"username":auth[0], "api_key":auth[1]})
+        if hasattr(self,"username"):
+            params.update({"username":self.username})
+        if hasattr(self,"api_key"):
+            params.update({"api_key":self.api_key})
+
 
         start = time.time()
         #print method, uri, "============>     ",
