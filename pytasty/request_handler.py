@@ -2,6 +2,7 @@ import requests
 from .exceptions import PyTastyNotFoundError, PyTastyError
 import json
 import time
+import urlparse
 
 FORMAT = "json"
 
@@ -15,23 +16,42 @@ class HttpRequest(object):
         if not api_key:
             return {}
 
-    def request(self, method, uri, params={}, data={}, *args, **kwargs):
-        params.update(self.params)
+    def request(self, method, uri, params=None, data=None, *args, **kwargs):
+        uri, old_params = clean_url(uri)
+        current_params = {}
+        current_data = {}
+        current_params.update(old_params)
+        if params:
+            current_params.update(params)
+        if data:
+            current_data.update(data)
+        current_params.update(self.params)
         if hasattr(self, "username"):
-            params.update({"username": self.username})
+            current_params.update({"username": self.username})
         if hasattr(self, "api_key"):
-            params.update({"api_key": self.api_key})
+            current_params.update({"api_key": self.api_key})
 
-        start = time.time()
+        # start = time.time()
         # print method, uri, "============>     ",
         response = requests.request(
             method,
             uri,
-            params=params,
+            params=current_params,
             headers=self.headers,
-            data=json.dumps(data))
+            data=json.dumps(current_data))
         # print time.time() - start, "Seconds"
         return response_handler(response)
+
+
+def clean_url(url):
+    splits = url.split('?')
+    cleaned_url = splits[0]
+    if len(splits) > 1:
+        params = {key: list(set(val))
+                  for key, val in urlparse.parse_qs(splits[1]).items()}
+    else:
+        params = {}
+    return cleaned_url, params
 
 
 def response_handler(response):
