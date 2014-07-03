@@ -89,7 +89,7 @@ class ListResource(object):
                     break
         except TypeError, e:
             print e, next_url, response_objects
-            break
+            return
 
     def get(self, offset=0, limit=20, **kwargs):
         response_objects = self.request_handler.request(
