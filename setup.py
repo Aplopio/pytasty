@@ -8,7 +8,7 @@ except ImportError:
     from setuptools import setup
 setup(
     name='pytasty',
-    version='0.1.1',
+    version='0.1.2',
     packages=['pytasty', ],
     license='MIT',
     long_description=open('README.rst').read(),
