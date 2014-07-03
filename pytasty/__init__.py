@@ -70,25 +70,26 @@ class ListResource(object):
         response_objects = self.request_handler.request(
             "GET",
             self.list_endpoint)
-        next_url = response_objects['meta']['next']
-        objects = response_objects['objects']
-        self.count = response_objects['meta']['total_count']
-        while True:
-            for obj in objects:
-                yield self.get_detail_object(obj)
-            if next_url:
-                response_objects = self.request_handler.request(
-                    "GET",
-                    self.SITE +
-                    next_url)
-                try:
+        next_url = None
+        try:
+            next_url = response_objects['meta']['next']
+            objects = response_objects['objects']
+            self.count = response_objects['meta']['total_count']
+            while True:
+                for obj in objects:
+                    yield self.get_detail_object(obj)
+                if next_url:
+                    response_objects = self.request_handler.request(
+                        "GET",
+                        self.SITE +
+                        next_url)
                     next_url = response_objects['meta']['next']
                     objects = response_objects['objects']
-                except TypeError, e:
-                    print e, next_url, response_objects
+                else:
                     break
-            else:
-                break
+        except TypeError, e:
+            print e, next_url, response_objects
+            break
 
     def get(self, offset=0, limit=20, **kwargs):
         response_objects = self.request_handler.request(
