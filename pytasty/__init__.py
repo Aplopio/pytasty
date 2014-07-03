@@ -81,8 +81,12 @@ class ListResource(object):
                     "GET",
                     self.SITE +
                     next_url)
-                next_url = response_objects['meta']['next']
-                objects = response_objects['objects']
+                try:
+                    next_url = response_objects['meta']['next']
+                    objects = response_objects['objects']
+                except TypeError, e:
+                    print e, next_url, response_objects
+                    break
             else:
                 break
 
