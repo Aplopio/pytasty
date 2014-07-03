@@ -44,7 +44,7 @@ class HttpRequest(object):
 def clean_url(url):
     splits = url.split('?')
     cleaned_url = splits[0]
-    if len(splits) > 1:
+    if splits[1:]:
         params = {key: list(set(val))
                   for key, val in urlparse.parse_qs(splits[1]).items()}
     else:
