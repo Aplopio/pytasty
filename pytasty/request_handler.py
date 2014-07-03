@@ -21,10 +21,8 @@ class HttpRequest(object):
         current_params = {}
         current_data = {}
         current_params.update(old_params)
-        if params:
-            current_params.update(params)
-        if data:
-            current_data.update(data)
+        current_params.update(params or {})
+        current_data.update(data or {})
         current_params.update(self.params)
         if hasattr(self, "username"):
             current_params.update({"username": self.username})
