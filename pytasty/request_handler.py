@@ -1,8 +1,11 @@
+from future import standard_library
+standard_library.install_aliases()
+from builtins import object
 import requests
 from .exceptions import PyTastyNotFoundError, PyTastyError
 import json
 import time
-import urlparse
+import urllib.parse
 
 FORMAT = "json"
 
@@ -46,7 +49,7 @@ def clean_url(url):
     cleaned_url = splits[0]
     if splits[1:]:
         params = {key: list(set(val))
-                  for key, val in urlparse.parse_qs(splits[1]).items()}
+                  for key, val in list(urllib.parse.parse_qs(splits[1]).items())}
     else:
         params = {}
     return cleaned_url, params
