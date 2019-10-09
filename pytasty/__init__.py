@@ -1,7 +1,7 @@
+from __future__ import print_function
+from builtins import str
+from builtins import object
 from .request_handler import HttpRequest
-import time
-import requests
-from io import StringIO
 from .utils import dehydrate, get_schema
 from .field_handlers import get_field_handler
 from .data_type import List
@@ -87,8 +87,8 @@ class ListResource(object):
                     objects = response_objects['objects']
                 else:
                     break
-        except TypeError, e:
-            print e, next_url, response_objects
+        except TypeError as e:
+            print(e, next_url, response_objects)
             return
 
     def get(self, offset=0, limit=20, **kwargs):
