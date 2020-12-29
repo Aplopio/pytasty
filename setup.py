@@ -14,6 +14,6 @@ setup(
     long_description=open('README.rst').read(),
     install_requires=[
         # -*- Extra requirements: -*-
-        'requests == 2.2.1',
+        'requests >= 2.2.1',
     ],
 )
